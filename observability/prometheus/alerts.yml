@@ -1,0 +1,36 @@
+groups:
+  - name: sovereign-guard
+    rules:
+      - alert: HighCPUUsage
+        expr: avg(rate(cpu_usage_seconds_total[5m])) by (service) > 0.8
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "High CPU usage on {{ $labels.service }}"
+          description: "CPU usage above 80% for 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "High memory usage on {{ $labels.service }}"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: medium
+        annotations:
+          summary: "P95 latency above 1s on {{ $labels.service }}"
+
+      - alert: High5xxRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx error rate above 5% on {{ $labels.service }}"
+          webhook: "http://ops-bot:8000/webhook/alert"

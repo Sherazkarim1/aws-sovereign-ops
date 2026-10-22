@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Lint
+        run: python -m compileall src tests
+      - name: Test
+        run: pytest -q
+      - name: Validate Terraform
+        uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infrastructure fmt -check -recursive
+      - run: terraform -chdir=infrastructure init -backend=false && terraform -chdir=infrastructure validate

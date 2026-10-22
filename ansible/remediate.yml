@@ -1,0 +1,30 @@
+---
+- name: SovereignGuard automated remediation
+  hosts: "{{ target_host | default('localhost') }}"
+  become: true
+  tasks:
+    - name: Restart container
+      when: action == "restart_container"
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        state: started
+        restart: true
+
+    - name: Restart service
+      when: action == "restart_service"
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        state: restarted
+
+    - name: Flush cache
+      when: action == "flush_cache"
+      ansible.builtin.command: redis-cli -h {{ cache_host }} FLUSHALL
+
+    - name: Scale out instance group
+      when: action == "scale_out"
+      amazon.aws.autoscaling_group:
+        name: "{{ asg_name }}"
+        desired_capacity: "{{ desired_capacity }}"
+        min_size: "{{ min_size }}"
+        max_size: "{{ max_size }}"
+        region: "{{ aws_region }}"
